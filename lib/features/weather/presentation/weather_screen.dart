@@ -2,16 +2,43 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../application/weather_notifier.dart';
 
-class WeatherScreen extends ConsumerWidget {
+
+class WeatherScreen extends ConsumerStatefulWidget {
   final String city;
-  const WeatherScreen({super.key, required this.city});
+  final double? latitude;
+  final double? longitude;
+
+  const WeatherScreen({
+    super.key,
+    required this.city,
+    this.latitude,
+    this.longitude,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final weatherAsyncValue = ref.watch(weatherNotifierProvider(city));
+  ConsumerState<WeatherScreen> createState() => _WeatherScreenState();
+}
+
+class _WeatherScreenState extends ConsumerState<WeatherScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.latitude != null && widget.longitude != null) {
+      Future.microtask(() {
+        ref.read(weatherNotifierProvider(widget.city).notifier).fetchByLocation(
+          widget.latitude!,
+          widget.longitude!,
+        );
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final weatherAsyncValue = ref.watch(weatherNotifierProvider(widget.city));
 
     return Scaffold(
-      appBar: AppBar(title: Text('$cityの天気')),
+      appBar: AppBar(title: Text('${widget.city}の天気')),
       body: weatherAsyncValue.when(
         data: (weatherList) {
           if (weatherList.isEmpty) {
@@ -60,7 +87,14 @@ class WeatherScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
-                  ref.read(weatherNotifierProvider(city).notifier).retry();
+                  if (widget.latitude != null && widget.longitude != null) {
+                    ref.read(weatherNotifierProvider(widget.city).notifier).fetchByLocation(
+                      widget.latitude!,
+                      widget.longitude!,
+                    );
+                  } else {
+                    ref.read(weatherNotifierProvider(widget.city).notifier).retry();
+                  }
                 },
                 child: const Text('再試行'),
               ),

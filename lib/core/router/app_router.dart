@@ -18,7 +18,16 @@ GoRouter appRouter(AppRouterRef ref) {
         path: '/weather',
         builder: (context, state) {
           final city = state.uri.queryParameters['city'] ?? 'Tokyo';
-          return WeatherScreen(city: city);
+          final latString = state.uri.queryParameters['lat'];
+          final lonString = state.uri.queryParameters['lon'];
+          final lat = latString != null ? double.tryParse(latString) : null;
+          final lon = lonString != null ? double.tryParse(lonString) : null;
+
+          return WeatherScreen(
+            city: city,
+            latitude: lat,
+            longitude: lon,
+          );
         },
       ),
     ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -36,10 +37,61 @@ class HomeScreen extends StatelessWidget {
           );
         },
       ),
+
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // TODO: 後ほど、現在地を取得して遷移する処理を実装します
-          context.push('/weather?city=CurrentLocation');
+        onPressed: () async {
+          LocationPermission permission = await Geolocator.checkPermission();
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission();
+            if (permission == LocationPermission.denied) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('位置情報の権限が拒否されました')),
+                );
+              }
+              return;
+            }
+          }
+
+          if (permission == LocationPermission.deniedForever) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('設定から位置情報の権限を許可してください')),
+              );
+            }
+            return;
+          }
+
+          try {
+            if (context.mounted) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            final position = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.low,
+            );
+
+            if (context.mounted) {
+              Navigator.of(context).pop();
+            }
+
+            if (context.mounted) {
+              context.push(
+                '/weather?city=現在地&lat=${position.latitude}&lon=${position.longitude}',
+              );
+            }
+          } catch (e) {
+            if (context.mounted) {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('現在地の取得に失敗しました: $e')),
+              );
+            }
+          }
         },
         icon: const Icon(Icons.location_on),
         label: const Text('現在地から取得'),
